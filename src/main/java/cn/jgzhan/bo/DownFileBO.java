@@ -1,5 +1,8 @@
 package cn.jgzhan.bo;
 
+import com.xiaoleilu.hutool.util.CollectionUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
+import java.util.Collections;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,5 +36,13 @@ public class DownFileBO {
   private String fileName;
 
   private List<BlockInfo> blockInfoList;
+
+  public boolean isEmpty() {
+    if (CollectionUtil.isEmpty(blockInfoList) || StrUtil.isEmpty(url)) {
+      return true;
+    }
+    return false;
+  }
+
 
 }

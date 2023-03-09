@@ -1,8 +1,8 @@
 package cn.jgzhan.service;
 
 import static cn.jgzhan.constants.FileConstant.TEMP_FILE_NAME_SUFFIX;
+import static cn.jgzhan.constants.FileConstant.TEMP_LEN_FLAG;
 import static cn.jgzhan.thread.ThreadPoll.getThreadPool;
-import static cn.jgzhan.utils.FileUtil.getProgressBar;
 
 import cn.jgzhan.bo.BlockInfo;
 import cn.jgzhan.bo.DownFileBO;
@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import jdk.jshell.spi.ExecutionControl.StoppedException;
 
 public class FileDownService {
@@ -59,7 +58,7 @@ public class FileDownService {
     long before = System.currentTimeMillis();
     var exists = tempFile.exists();
     var tempRandomAccessFile = new RandomAccessFile(tempFile, "rw");
-    downFileBO = exists ? getTempObject(tempRandomAccessFile) : setBlockInfo(downFileBO);
+    downFileBO = getDownFileBO(downFileBO, exists, tempRandomAccessFile);
 
     var futureList = batchSubmit(downFileBO, target);
     //等待下载完成
@@ -72,6 +71,17 @@ public class FileDownService {
     long after = System.currentTimeMillis();
     System.out.println("\n下载完成，花费时间 ：" + (after - before) / 1000 + "秒");
     return allSuccess;
+  }
+
+  private DownFileBO getDownFileBO(DownFileBO downFileBO, boolean exists,
+      RandomAccessFile tempRandomAccessFile) throws IOException {
+    if (exists) {
+      var tempObject = getTempObjectFromFile(tempRandomAccessFile);
+      if (tempObject != null && !tempObject.isEmpty()) {
+        return tempObject;
+      }
+    }
+    return setBlockInfo(downFileBO);
   }
 
   private DownFileBO setBlockInfo(DownFileBO downFileBO) {
@@ -180,9 +190,12 @@ public class FileDownService {
 
   private void saveTempFile(RandomAccessFile tempRandomAccessFile, DownFileBO downFileBO)
       throws IOException {
-    // TODO: 2023/3/7 存在风险，若清空后没有写入成功，则下次进来时获取对象失败
-    tempRandomAccessFile.setLength(0);
-    tempRandomAccessFile.writeBytes(JSON.toJSONString(downFileBO));
+    var jsonString = JSON.toJSONString(downFileBO);
+    var length = jsonString.length();
+    var tempStr = length + TEMP_LEN_FLAG + jsonString;
+    tempRandomAccessFile.seek(0);
+    tempRandomAccessFile.writeBytes(tempStr);
+    tempRandomAccessFile.getChannel().truncate(tempStr.length());
 
   }
 
@@ -198,7 +211,7 @@ public class FileDownService {
     return futureList;
   }
 
-  private DownFileBO getTempObject(RandomAccessFile tempRandomAccessFile) throws IOException {
+  private DownFileBO getTempObjectFromFile(RandomAccessFile tempRandomAccessFile) throws IOException {
     var tempBuffer = new byte[1024 * 2];
     StringBuilder tempSb = new StringBuilder();
     while (true) {
@@ -209,7 +222,17 @@ public class FileDownService {
       var tempTempBuffer = Arrays.copyOfRange(tempBuffer, 0, read);
       tempSb.append(new String(tempTempBuffer));
     }
-    return JSON.parseObject(tempSb.toString(), DownFileBO.class);
+    var tempStr = tempSb.toString();
+    var flagIndex = tempStr.indexOf(TEMP_LEN_FLAG);
+    if (flagIndex == -1){
+      return null;
+    }
+    // 获取标志位截取json长度
+    var lengthStr = tempStr.substring(0, flagIndex);
+    var length = Integer.parseInt(lengthStr);
+    var flagLength = lengthStr.length() + TEMP_LEN_FLAG.length();
+    var jsonStr = tempStr.substring(flagLength, flagLength + length);
+    return JSON.parseObject(jsonStr, DownFileBO.class);
   }
 
   private Future<Boolean> submit(String filePath, File target, BlockInfo blockInfo) {

@@ -27,6 +27,23 @@
       <artifactId>lombok</artifactId>
       <version>1.18.26</version>
     </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.xiaoleilu</groupId>
+      <artifactId>hutool</artifactId>
+      <version>2.16.2</version>
+    </dependency>
   </dependencies>
 
 </project>
