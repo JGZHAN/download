@@ -194,6 +194,9 @@ public class FileDownService {
     var length = jsonString.length();
     var tempStr = length + TEMP_LEN_FLAG + jsonString;
     tempRandomAccessFile.seek(0);
+    // writeBytes方法如果写入文件的过程中发生任何错误，
+    // 例如系统崩溃、磁盘已满等，就可能出现写一半成功、一半失败的情况
+    // 此为较小概率且暂无想到办法解决
     tempRandomAccessFile.writeBytes(tempStr);
     tempRandomAccessFile.getChannel().truncate(tempStr.length());
 
