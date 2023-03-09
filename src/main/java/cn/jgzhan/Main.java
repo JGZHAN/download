@@ -12,9 +12,7 @@ public class Main {
 
   public static void main(String[] args) throws Exception {
 
-//    var downFileBO = toFileDownBO(args);
-    var downFileBO = toFileDownBO(new String[]{"https://dldir1.qq.com/weixin/mac/WeChatMac.dmg"});
-//    var testUrl = "https://dldir1.qq.com/weixin/mac/WeChatMac.dmg";
+    var downFileBO = toFileDownBO(args);
     var allSuccess = fileDownService.downLoadFile(downFileBO);
     if (!allSuccess) {
       System.out.println("部分片段下载失败");
